@@ -23,8 +23,23 @@ export interface FirebaseProjectProfile {
 
 export const KNOWN_PROJECTS: FirebaseProjectProfile[] = [
   {
+    id: "birbir-town-khc-child-ministry",
+    label: "birbir-town-khc-child-ministry (ዋናው አዲሱ ዳታቤዝ)",
+    config: {
+      apiKey: "AIzaSyAruE9nGOFGkGRHs1hbRT2EmLq1hJrWSb8",
+      authDomain: "birbir-town-khc-child-ministry.firebaseapp.com",
+      databaseURL: "https://birbir-town-khc-child-ministry-default-rtdb.europe-west1.firebasedatabase.app",
+      databaseURL_alt: "https://birbir-town-khc-child-ministry-default-rtdb.firebaseio.com",
+      databaseURL_alt2: "https://birbir-town-khc-child-ministry.firebaseio.com",
+      projectId: "birbir-town-khc-child-ministry",
+      storageBucket: "birbir-town-khc-child-ministry.firebasestorage.app",
+      messagingSenderId: "556764983235",
+      appId: "1:556764983235:web:fb6fecffab48f8e6285776"
+    }
+  },
+  {
     id: "birbir-khc-child-page",
-    label: "birbir-khc-child-page (አዲሱ ዋና ዳታቤዝ)",
+    label: "birbir-khc-child-page",
     config: {
       apiKey: "AIzaSyCRyDJHarx0va7X5pXXP2rnGafq2eBLq9s",
       authDomain: "birbir-khc-child-page.firebaseapp.com",
@@ -74,7 +89,11 @@ const BACKUP_STORAGE_KEY = 'birbir_khc_safety_backup';
 const DB_KEY = 'kaleheywet_data';
 
 export const getActiveProjectId = (): string => {
-  return localStorage.getItem(ACTIVE_PROJECT_STORAGE_KEY) || KNOWN_PROJECTS[0].id;
+  const saved = localStorage.getItem(ACTIVE_PROJECT_STORAGE_KEY);
+  if (!saved || saved === 'birbir-khc-child-page') {
+    return 'birbir-town-khc-child-ministry';
+  }
+  return saved;
 };
 
 export const setActiveProjectId = (projectId: string) => {
