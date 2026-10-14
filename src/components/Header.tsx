@@ -11,6 +11,7 @@ interface HeaderProps {
   loggedInTeacherName?: string;
   onLogout: () => void;
   syncStatus: 'connected' | 'saving' | 'offline' | 'error';
+  onOpenSyncModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,7 +22,8 @@ export const Header: React.FC<HeaderProps> = ({
   currentUserRole,
   loggedInTeacherName,
   onLogout,
-  syncStatus
+  syncStatus,
+  onOpenSyncModal
 }) => {
   const [showAddYearModal, setShowAddYearModal] = useState(false);
   const [newYearInput, setNewYearInput] = useState('');
@@ -63,21 +65,17 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Status & Sync Badge */}
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center">
-              <div
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-md transition-all ${
+              <button
+                type="button"
+                onClick={onOpenSyncModal}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-md transition-all hover:scale-105 cursor-pointer shadow-sm ${
                   syncStatus === 'connected'
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
                     : syncStatus === 'saving'
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
+                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30'
                 }`}
-                title={
-                  syncStatus === 'connected'
-                    ? 'Firebase Realtime Database Online'
-                    : syncStatus === 'saving'
-                    ? 'ለውጦች በመመዝገብ ላይ...'
-                    : 'የአካባቢ ዳታ (Offline Storage)'
-                }
+                title="የዳታቤዝ ሁኔታን ለማየትና ባክአፕ ለማውረድ ይጫኑ"
               >
                 <span
                   className={`w-2 h-2 rounded-full ${
@@ -96,7 +94,16 @@ export const Header: React.FC<HeaderProps> = ({
                     ? 'በመመዝገብ ላይ...'
                     : 'ከመስመር ውጭ (የተቀመጠ)'}
                 </span>
-              </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={onOpenSyncModal}
+                className="bg-blue-800/80 hover:bg-blue-700 text-amber-300 border border-blue-700/60 text-xs px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 shadow"
+                title="የዳታ ባክአፕ ማውረጃና የFirebase ማስተካከያ"
+              >
+                <span>💾 ዳታቤዝ & ባክአፕ</span>
+              </button>
             </div>
           </div>
         </div>

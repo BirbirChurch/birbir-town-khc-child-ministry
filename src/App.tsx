@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Role, Teacher, Student, AbsenteeRecord, ChoirMember, SpiritualMember, AnnualPlanItem, AppData } from './types';
 import { CLASS_LIST, DEFAULT_ANNUAL_PLAN } from './constants/initialData';
-import { subscribeToAppData, syncAppDataToFirebase } from './services/firebase';
+import { subscribeToAppData, syncAppDataToFirebase, countStudentsInData, exportBackupJSON } from './services/firebase';
 import { Header } from './components/Header';
 import { LoginPortal } from './components/LoginPortal';
 import { ClassesTab } from './components/ClassesTab';
@@ -29,6 +29,7 @@ import { PlanReportTab } from './components/PlanReportTab';
 import { TeachersTab } from './components/TeachersTab';
 import { SubjectsTab } from './components/SubjectsTab';
 import { PinManageTab } from './components/PinManageTab';
+import { FirebaseSyncModal } from './components/FirebaseSyncModal';
 
 export default function App() {
   const [appData, setAppData] = useState<AppData | null>(null);
@@ -38,8 +39,9 @@ export default function App() {
   const [loggedInTeacher, setLoggedInTeacher] = useState<Teacher | null>(null);
   const [selectedClass, setSelectedClass] = useState<string>(CLASS_LIST[3]); // 1ኛ ክፍል ሀ
   const [activeTab, setActiveTab] = useState<string>('classesTab');
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState<boolean>(false);
 
-  // Connect to Firebase Realtime Database
+  // Connect to Firebase Realtime Database and Firestore
   useEffect(() => {
     const unsubscribe = subscribeToAppData(
       (data) => {
@@ -70,38 +72,6 @@ export default function App() {
       return updated;
     });
   }, []);
-
-  // Seed default students for selected class and year if empty
-  useEffect(() => {
-    if (!appData) return;
-    const yearStudents = appData.students?.[currentYear] || {};
-    if (!yearStudents[selectedClass] || yearStudents[selectedClass].length === 0) {
-      const initialSeed: Student[] = Array.from({ length: 10 }, (_, i) => ({
-        id: Date.now() + i,
-        name: `ተማሪ ${i + 1}`,
-        age: 7 + (i % 5),
-        gender: i % 2 === 0 ? 'ወ' : 'ሴ',
-        m1: 8,
-        m2: 8,
-        m3: 9,
-        m4: 16,
-        m5: 8,
-        m6: 8,
-        m7: 25
-      }));
-
-      updateAppData((prev) => ({
-        ...prev,
-        students: {
-          ...prev.students,
-          [currentYear]: {
-            ...(prev.students?.[currentYear] || {}),
-            [selectedClass]: initialSeed
-          }
-        }
-      }));
-    }
-  }, [appData, currentYear, selectedClass, updateAppData]);
 
   // Handlers for Login
   const handleLoginSuccess = (role: Role, teacher?: Teacher) => {
@@ -399,14 +369,51 @@ export default function App() {
     <div className="min-h-screen bg-slate-100/70 text-slate-900 flex flex-col font-sans">
       <Header
         currentYear={currentYear}
-        years={appData.years || ['2019']}
+        years={appData?.years || ['2019']}
         onYearChange={setCurrentYear}
         onAddYear={handleAddYear}
         currentUserRole={currentUserRole}
         loggedInTeacherName={loggedInTeacher?.name}
         onLogout={handleLogout}
         syncStatus={syncStatus}
+        onOpenSyncModal={() => setIsSyncModalOpen(true)}
       />
+
+      {/* Reassurance & Fast Data Protection Banner */}
+      {appData && (
+        <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 text-white px-4 py-2.5 border-b border-emerald-700/50 print:hidden text-xs shadow-sm">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span className="font-bold text-emerald-100">
+                ✓ የሰሩት ስራ አልጠፋም! በደህንነት ተቀምጧል
+              </span>
+              <span className="text-emerald-300/90 hidden md:inline">
+                (በስርዓቱ ውስጥ፦ {countStudentsInData(appData)} ተማሪዎች፣ {appData.teachers?.length || 0} መምህራን ተመዝግበዋል)
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => exportBackupJSON(appData)}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded-lg text-[11px] transition flex items-center gap-1 shadow"
+                title="የሰሩትን ሙሉ መረጃ ወዲያውኑ ወደ ኮምፒዩተርዎ ያውርዱ"
+              >
+                <span>💾 ባክአፕ አውርድ (JSON)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSyncModalOpen(true)}
+                className="bg-blue-800 hover:bg-blue-700 text-amber-300 font-bold px-3 py-1 rounded-lg text-[11px] transition flex items-center gap-1 border border-blue-700 shadow"
+                title="የFirebase ግንኙነት ማስተካከያና የቀድሞ ስራ መፈለጊያ"
+              >
+                <span>⚙️ ዳታቤዝ ማስተካከያ & የቀድሞ ስራ መፈለጊያ</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {!currentUserRole ? (
@@ -562,6 +569,19 @@ export default function App() {
           </span>
         </div>
       </footer>
+
+      {appData && (
+        <FirebaseSyncModal
+          isOpen={isSyncModalOpen}
+          onClose={() => setIsSyncModalOpen(false)}
+          appData={appData}
+          onDataRestored={(newData) => {
+            setAppData(newData);
+            syncAppDataToFirebase(newData);
+          }}
+          syncStatus={syncStatus}
+        />
+      )}
     </div>
   );
 }
